@@ -46,6 +46,10 @@ const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/xxxxx/exec';
 
 空文字のままの場合は、ローカル確認用のダミーデータで動作します。
 
+## ホーム画面への追加
+
+`manifest.json` とアプリアイコンを設定済みです。スマホのブラウザでホーム画面へ追加すると、`Picking Mini` がネイティブアプリ風の単独画面で起動します。
+
 ## API
 
 ### GET search
