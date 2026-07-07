@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Picking Mini</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <h1>Picking Mini</h1>
+      <p>薬品の置き場所メモ</p>
+    </header>
+
+    <section class="search-panel" aria-labelledby="search-title">
+      <h2 id="search-title">検索</h2>
+      <form id="searchForm" class="search-form">
+        <input
+          id="searchInput"
+          name="q"
+          type="search"
+          placeholder="薬品名・一般名・略称で検索"
+          autocomplete="off"
+        >
+        <button type="submit">検索</button>
+      </form>
+      <p id="statusMessage" class="status-message" role="status"></p>
+    </section>
+
+    <section class="section-block" aria-labelledby="recent-title">
+      <div class="section-heading">
+        <h2 id="recent-title">最近検索した薬</h2>
+        <button id="clearRecentButton" class="text-button" type="button">クリア</button>
+      </div>
+      <div id="recentList" class="compact-list"></div>
+    </section>
+
+    <section class="section-block" aria-labelledby="results-title">
+      <h2 id="results-title">検索結果</h2>
+      <div id="resultsList" class="card-list"></div>
+      <div id="emptyState" class="empty-state" hidden>
+        <p>見つかりませんでした</p>
+        <button id="registerFromSearchButton" type="button">＋ この名前で登録</button>
+      </div>
+    </section>
+
+    <section class="section-block" aria-labelledby="detail-title">
+      <div class="section-heading">
+        <h2 id="detail-title">詳細</h2>
+        <button id="editButton" class="secondary-button" type="button" hidden>編集</button>
+      </div>
+      <div id="detailView" class="detail-view empty-text">薬品を選択してください。</div>
+    </section>
+
+    <section class="section-block" aria-labelledby="form-title">
+      <div class="section-heading">
+        <h2 id="form-title">新規登録 / 編集</h2>
+        <button id="newButton" class="secondary-button" type="button">新規</button>
+      </div>
+      <form id="drugForm" class="drug-form">
+        <input id="drugId" name="id" type="hidden">
+
+        <label>
+          <span>表示名 <strong>必須</strong></span>
+          <input id="displayName" name="displayName" type="text" required>
+        </label>
+
+        <label>
+          <span>一般名</span>
+          <input id="genericName" name="genericName" type="text">
+        </label>
+
+        <label>
+          <span>別名・略称・検索語</span>
+          <input id="aliases" name="aliases" type="text" placeholder="カンマ区切り">
+        </label>
+
+        <label>
+          <span>置き場所</span>
+          <input id="location" name="location" type="text">
+        </label>
+
+        <label>
+          <span>メモ</span>
+          <textarea id="note" name="note" rows="3"></textarea>
+        </label>
+
+        <label>
+          <span>写真URL</span>
+          <input id="imageUrl" name="imageUrl" type="url" inputmode="url">
+        </label>
+
+        <label class="checkbox-label">
+          <input id="favorite" name="favorite" type="checkbox">
+          <span>お気に入り</span>
+        </label>
+
+        <button id="saveButton" type="submit">保存</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
