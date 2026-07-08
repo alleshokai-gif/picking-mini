@@ -100,17 +100,19 @@ function ensureHeaders_(sheet) {
 function readRecords_() {
   const sheet = getSheet_();
   const lastRow = sheet.getLastRow();
+  const sheetHeaders = getSheetHeaders_(sheet);
+  const lastColumn = Math.max(HEADERS.length, sheet.getLastColumn());
 
   if (lastRow < 2) {
     return [];
   }
 
   return sheet
-    .getRange(2, 1, lastRow - 1, HEADERS.length)
+    .getRange(2, 1, lastRow - 1, lastColumn)
     .getValues()
     .map((row, index) => ({
       rowNumber: index + 2,
-      record: rowToRecord_(row),
+      record: rowToRecord_(row, sheetHeaders),
       isBlank: row.every(value => value === ''),
     }))
     .filter(item => !item.isBlank)
@@ -120,14 +122,38 @@ function readRecords_() {
     }));
 }
 
-function rowToRecord_(row) {
+function getSheetHeaders_(sheet) {
+  const lastColumn = Math.max(HEADERS.length, sheet.getLastColumn());
+  const values = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+
+  return values.map((value, index) => value || HEADERS[index] || '');
+}
+
+function rowToRecord_(row, sheetHeaders) {
   const record = {};
 
-  HEADERS.forEach((header, index) => {
-    record[header] = normalizeValue_(header, row[index]);
+  HEADERS.forEach((header, fallbackIndex) => {
+    const index = sheetHeaders.indexOf(header);
+    const valueIndex = index === -1 ? fallbackIndex : index;
+    record[header] = normalizeValue_(header, row[valueIndex]);
   });
 
+  const kanaIndex = sheetHeaders.indexOf('kana');
+
+  if (kanaIndex !== -1) {
+    attachHiddenField_(record, 'kana', normalizeValue_('kana', row[kanaIndex]));
+  }
+
   return record;
+}
+
+function attachHiddenField_(record, header, value) {
+  Object.defineProperty(record, header, {
+    value,
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  });
 }
 
 function normalizeValue_(header, value) {
@@ -142,10 +168,20 @@ function normalizeValue_(header, value) {
   return value == null ? '' : String(value);
 }
 
-function recordToRow_(record) {
-  return HEADERS.map(header => {
+function recordToRow_(record, sheetHeaders) {
+  const headers = sheetHeaders || HEADERS;
+
+  return headers.map(header => {
+    if (!header) {
+      return '';
+    }
+
     if (header === 'favorite') {
       return record.favorite === true || String(record.favorite).toLowerCase() === 'true';
+    }
+
+    if (HEADERS.indexOf(header) === -1 && header !== 'kana') {
+      return '';
     }
 
     return record[header] == null ? '' : record[header];
@@ -153,7 +189,7 @@ function recordToRow_(record) {
 }
 
 function searchDrugs_(query) {
-  const needle = String(query || '').trim().toLowerCase();
+  const needle = normalizeText_(query);
   const records = readRecords_().map(item => item.record);
 
   if (!needle) {
@@ -167,8 +203,19 @@ function searchDrugs_(query) {
       record.aliases,
       record.location,
       record.note,
-    ].join(' ').toLowerCase().indexOf(needle) !== -1)
+      record.kana,
+    ].map(normalizeText_).join(' ').indexOf(needle) !== -1)
     .slice(0, SEARCH_LIMIT);
+}
+
+function normalizeText_(text) {
+  return String(text || '')
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[ぁ-ん]/g, function(ch) {
+      return String.fromCharCode(ch.charCodeAt(0) + 0x60);
+    });
 }
 
 function getDrugDetail_(id) {
@@ -207,7 +254,8 @@ function saveDrug_(params) {
   };
 
   const sheet = getSheet_();
-  sheet.appendRow(recordToRow_(record));
+  const sheetHeaders = getSheetHeaders_(sheet);
+  sheet.appendRow(recordToRow_(record, sheetHeaders));
   return record;
 }
 
@@ -238,12 +286,14 @@ function updateDrug_(params) {
       : hit.record.favorite,
     updatedAt: now_(),
   });
+  attachHiddenField_(updated, 'kana', hit.record.kana);
 
   if (!updated.displayName) {
     throw new Error('displayName is required');
   }
 
-  sheet.getRange(hit.rowNumber, 1, 1, HEADERS.length).setValues([recordToRow_(updated)]);
+  const sheetHeaders = getSheetHeaders_(sheet);
+  sheet.getRange(hit.rowNumber, 1, 1, sheetHeaders.length).setValues([recordToRow_(updated, sheetHeaders)]);
   return updated;
 }
 
