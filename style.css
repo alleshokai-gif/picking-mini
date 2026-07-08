@@ -87,8 +87,15 @@ h2 {
 
 .search-form {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
   gap: 8px;
+}
+
+.search-loading {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 input,
@@ -175,6 +182,13 @@ button:disabled {
   font-weight: 800;
 }
 
+mark {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 900;
+}
+
 .location-badge {
   display: inline-flex;
   width: fit-content;
@@ -189,6 +203,11 @@ button:disabled {
 
 .location-badge.large {
   font-size: 18px;
+}
+
+.result-location {
+  font-size: 22px;
+  line-height: 1.2;
 }
 
 .sub-text,
@@ -314,7 +333,11 @@ button:disabled {
   }
 
   .search-form {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+  }
+
+  .search-form button {
+    grid-column: 1 / -1;
   }
 
   .detail-row {

@@ -1,6 +1,7 @@
 const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw36dFBG28U-HpxZghaCarugA1TZ8XUn3G1qsWR4i_1zsNkCRWYoiBIRSbM5G__WDNU/exec';
 const RECENT_STORAGE_KEY = 'pickingMiniRecent';
 const MAX_RECENT = 20;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const mockDrugs = [
   {
@@ -32,11 +33,15 @@ const mockDrugs = [
 const state = {
   currentQuery: '',
   currentDetail: null,
+  lastSearchQuery: null,
+  searchTimerId: null,
+  searchRequestId: 0,
 };
 
 const elements = {
   searchForm: document.querySelector('#searchForm'),
   searchInput: document.querySelector('#searchInput'),
+  searchLoading: document.querySelector('#searchLoading'),
   statusMessage: document.querySelector('#statusMessage'),
   recentList: document.querySelector('#recentList'),
   clearRecentButton: document.querySelector('#clearRecentButton'),
@@ -52,7 +57,11 @@ const elements = {
 
 elements.searchForm.addEventListener('submit', event => {
   event.preventDefault();
-  searchDrugs(elements.searchInput.value);
+  runSearch(elements.searchInput.value);
+});
+
+elements.searchInput.addEventListener('input', () => {
+  queueSearch(elements.searchInput.value);
 });
 
 elements.registerFromSearchButton.addEventListener('click', () => {
@@ -85,24 +94,78 @@ elements.drugForm.addEventListener('submit', async event => {
 renderRecent();
 resetForm();
 
-async function searchDrugs(query) {
+function queueSearch(query) {
+  window.clearTimeout(state.searchTimerId);
+
+  if (!query.trim()) {
+    clearSearchResults();
+    return;
+  }
+
+  state.searchTimerId = window.setTimeout(() => {
+    runSearch(query);
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+async function runSearch(query, options = {}) {
   const trimmedQuery = query.trim();
+
+  if (!trimmedQuery) {
+    clearSearchResults();
+    return;
+  }
+
+  if (!options.force && trimmedQuery === state.lastSearchQuery) {
+    return;
+  }
+
   state.currentQuery = trimmedQuery;
-  setStatus('検索中...');
+  state.lastSearchQuery = trimmedQuery;
+  const requestId = ++state.searchRequestId;
+
+  setSearchLoading(true);
+  setStatus('');
   elements.emptyState.hidden = true;
   elements.resultsList.innerHTML = '';
 
   try {
-    const results = await apiGet('search', { q: trimmedQuery });
-    renderResults(results);
+    const results = await fetchSearchCandidates(trimmedQuery);
+
+    if (requestId !== state.searchRequestId) {
+      return;
+    }
+
+    renderResults(results, trimmedQuery);
     setStatus(`${results.length}件見つかりました`);
 
     if (trimmedQuery && results.length === 0) {
       elements.emptyState.hidden = false;
     }
   } catch (error) {
-    setStatus(error.message);
+    if (requestId === state.searchRequestId) {
+      setStatus(error.message);
+    }
+  } finally {
+    if (requestId === state.searchRequestId) {
+      setSearchLoading(false);
+    }
   }
+}
+
+async function fetchSearchCandidates(query) {
+  return apiGet('search', { q: query });
+}
+
+function clearSearchResults() {
+  window.clearTimeout(state.searchTimerId);
+  state.currentQuery = '';
+  state.lastSearchQuery = null;
+  state.searchRequestId += 1;
+  elements.resultsList.innerHTML = '';
+  elements.emptyState.hidden = true;
+  setSearchLoading(false);
+  setStatus('');
+  renderRecent();
 }
 
 async function showDetail(id) {
@@ -138,7 +201,7 @@ async function saveForm() {
     setStatus(action === 'save' ? '保存しました' : '更新しました');
 
     if (state.currentQuery) {
-      await searchDrugs(state.currentQuery);
+      await runSearch(state.currentQuery, { force: true });
     }
   } catch (error) {
     setStatus(error.message);
@@ -264,7 +327,7 @@ async function mockApi(action, params) {
   throw new Error('未対応の操作です');
 }
 
-function renderResults(results) {
+function renderResults(results, query = '') {
   elements.resultsList.innerHTML = '';
   elements.emptyState.hidden = true;
 
@@ -285,10 +348,10 @@ function renderResults(results) {
     const body = document.createElement('span');
     body.className = 'drug-card-body';
     body.append(
-      textEl('strong', drug.displayName || '(名称未設定)', 'drug-name'),
-      textEl('span', drug.location || '置き場所未設定', 'location-badge'),
-      textEl('span', drug.genericName || '', 'sub-text'),
-      textEl('span', truncate(drug.note || '', 48), 'note-preview'),
+      highlightedEl('span', drug.location || '置き場所未設定', query, 'location-badge result-location'),
+      highlightedEl('strong', drug.displayName || '(名称未設定)', query, 'drug-name'),
+      labeledHighlightedEl('一般名：', drug.genericName || '', query, 'sub-text'),
+      highlightedEl('span', truncate(drug.note || '', 48), query, 'note-preview'),
     );
     card.append(body);
     elements.resultsList.append(card);
@@ -396,12 +459,71 @@ function textEl(tagName, text, className = '') {
   return element;
 }
 
+function labeledHighlightedEl(label, text, query, className = '') {
+  const element = document.createElement('span');
+
+  if (className) {
+    element.className = className;
+  }
+
+  element.append(document.createTextNode(label));
+  appendHighlightedText(element, text || '-', query);
+  return element;
+}
+
+function highlightedEl(tagName, text, query, className = '') {
+  const element = document.createElement(tagName);
+
+  if (className) {
+    element.className = className;
+  }
+
+  appendHighlightedText(element, text, query);
+  return element;
+}
+
+function appendHighlightedText(element, text, query) {
+  const source = String(text || '');
+  const needle = String(query || '').trim();
+
+  if (!needle) {
+    element.textContent = source;
+    return;
+  }
+
+  const lowerSource = source.toLowerCase();
+  const lowerNeedle = needle.toLowerCase();
+  let position = 0;
+
+  while (position < source.length) {
+    const index = lowerSource.indexOf(lowerNeedle, position);
+
+    if (index === -1) {
+      element.append(document.createTextNode(source.slice(position)));
+      break;
+    }
+
+    if (index > position) {
+      element.append(document.createTextNode(source.slice(position, index)));
+    }
+
+    const mark = document.createElement('mark');
+    mark.textContent = source.slice(index, index + needle.length);
+    element.append(mark);
+    position = index + needle.length;
+  }
+}
+
 function truncate(text, maxLength) {
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
 function setStatus(message) {
   elements.statusMessage.textContent = message;
+}
+
+function setSearchLoading(isLoading) {
+  elements.searchLoading.hidden = !isLoading;
 }
 
 function setSaving(isSaving) {
