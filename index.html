@@ -30,16 +30,15 @@
         <span id="searchLoading" class="search-loading" hidden>検索中...</span>
         <button type="submit">検索</button>
       </form>
-      <p id="statusMessage" class="status-message" role="status"></p>
 
-      <section class="suggestions-panel" aria-labelledby="results-title">
-        <h2 id="results-title" class="visually-hidden">検索結果</h2>
-        <div id="resultsList" class="candidate-list"></div>
-        <div id="emptyState" class="empty-state" hidden>
-          <p>見つかりませんでした</p>
-          <button id="registerFromSearchButton" type="button">＋ この名前で登録</button>
+      <section id="suggestions" class="suggestions-panel" aria-label="検索候補" hidden>
+        <div id="suggestionsList" class="suggestions-list"></div>
+        <div id="suggestionsEmpty" class="suggestions-empty" hidden>
+          <p>見つかりません。</p>
+          <button id="registerFromSuggestionButton" type="button">＋ この名前で登録</button>
         </div>
       </section>
+      <p id="statusMessage" class="status-message" role="status"></p>
     </section>
 
     <section id="recentSection" class="section-block" aria-labelledby="recent-title">
@@ -48,6 +47,11 @@
         <button id="clearRecentButton" class="text-button" type="button">クリア</button>
       </div>
       <div id="recentList" class="compact-list"></div>
+    </section>
+
+    <section id="searchResultsSection" class="section-block" aria-labelledby="search-results-title" hidden>
+      <h2 id="search-results-title">検索結果</h2>
+      <div id="searchResultsList" class="card-list"></div>
     </section>
 
     <section class="section-block" aria-labelledby="detail-title">

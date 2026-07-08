@@ -43,12 +43,15 @@ const elements = {
   searchInput: document.querySelector('#searchInput'),
   searchLoading: document.querySelector('#searchLoading'),
   statusMessage: document.querySelector('#statusMessage'),
+  suggestions: document.querySelector('#suggestions'),
+  suggestionsList: document.querySelector('#suggestionsList'),
+  suggestionsEmpty: document.querySelector('#suggestionsEmpty'),
+  registerFromSuggestionButton: document.querySelector('#registerFromSuggestionButton'),
   recentSection: document.querySelector('#recentSection'),
   recentList: document.querySelector('#recentList'),
   clearRecentButton: document.querySelector('#clearRecentButton'),
-  resultsList: document.querySelector('#resultsList'),
-  emptyState: document.querySelector('#emptyState'),
-  registerFromSearchButton: document.querySelector('#registerFromSearchButton'),
+  searchResultsSection: document.querySelector('#searchResultsSection'),
+  searchResultsList: document.querySelector('#searchResultsList'),
   detailView: document.querySelector('#detailView'),
   editButton: document.querySelector('#editButton'),
   newButton: document.querySelector('#newButton'),
@@ -65,8 +68,9 @@ elements.searchInput.addEventListener('input', () => {
   queueSearch(elements.searchInput.value);
 });
 
-elements.registerFromSearchButton.addEventListener('click', () => {
+elements.registerFromSuggestionButton.addEventListener('click', () => {
   resetForm({ displayName: state.currentQuery });
+  closeSuggestions();
   document.querySelector('#displayName').focus();
 });
 
@@ -127,8 +131,9 @@ async function runSearch(query, options = {}) {
   setRecentVisible(false);
   setSearchLoading(true);
   setStatus('');
-  elements.emptyState.hidden = true;
-  elements.resultsList.innerHTML = '';
+  elements.suggestions.hidden = false;
+  elements.suggestionsEmpty.hidden = true;
+  elements.suggestionsList.innerHTML = '';
 
   try {
     const results = await fetchSearchCandidates(trimmedQuery);
@@ -137,11 +142,11 @@ async function runSearch(query, options = {}) {
       return;
     }
 
-    renderResults(results, trimmedQuery);
+    renderSuggestions(results, trimmedQuery);
     setStatus('');
 
     if (trimmedQuery && results.length === 0) {
-      elements.emptyState.hidden = false;
+      elements.suggestionsEmpty.hidden = false;
     }
   } catch (error) {
     if (requestId === state.searchRequestId) {
@@ -163,12 +168,23 @@ function clearSearchResults() {
   state.currentQuery = '';
   state.lastSearchQuery = null;
   state.searchRequestId += 1;
-  elements.resultsList.innerHTML = '';
-  elements.emptyState.hidden = true;
+  closeSuggestions();
   setRecentVisible(true);
   setSearchLoading(false);
   setStatus('');
   renderRecent();
+}
+
+function closeSuggestions() {
+  elements.suggestions.hidden = true;
+  elements.suggestionsList.innerHTML = '';
+  elements.suggestionsEmpty.hidden = true;
+}
+
+async function selectSuggestion(id) {
+  await showDetail(id);
+  closeSuggestions();
+  elements.searchInput.blur();
 }
 
 async function showDetail(id) {
@@ -330,27 +346,27 @@ async function mockApi(action, params) {
   throw new Error('未対応の操作です');
 }
 
-function renderResults(results, query = '') {
-  elements.resultsList.innerHTML = '';
-  elements.emptyState.hidden = true;
+function renderSuggestions(results, query = '') {
+  elements.suggestions.hidden = false;
+  elements.suggestionsList.innerHTML = '';
+  elements.suggestionsEmpty.hidden = true;
 
   results.forEach(drug => {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'drug-card';
-    card.addEventListener('click', () => showDetail(drug.id));
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'suggestion-item';
+    item.addEventListener('click', () => selectSuggestion(drug.id));
 
     const body = document.createElement('span');
-    body.className = 'drug-card-body';
+    body.className = 'suggestion-body';
     const metaText = [drug.genericName, drug.aliases].filter(Boolean).join(' / ');
     body.append(
-      highlightedEl('span', drug.location || '置き場所未設定', query, 'location-badge result-location'),
-      highlightedEl('strong', drug.displayName || '(名称未設定)', query, 'drug-name'),
-      highlightedEl('span', metaText || '-', query, 'candidate-meta'),
-      highlightedEl('span', truncate(drug.note || '', 48), query, 'note-preview'),
+      highlightedEl('span', drug.location || '置き場所未設定', query, 'suggestion-location'),
+      highlightedEl('strong', drug.displayName || '(名称未設定)', query, 'suggestion-name'),
+      highlightedEl('span', metaText || '-', query, 'suggestion-meta'),
     );
-    card.append(body);
-    elements.resultsList.append(card);
+    item.append(body);
+    elements.suggestionsList.append(item);
   });
 }
 
