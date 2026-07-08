@@ -31,23 +31,23 @@
         <button type="submit">検索</button>
       </form>
       <p id="statusMessage" class="status-message" role="status"></p>
+
+      <section class="suggestions-panel" aria-labelledby="results-title">
+        <h2 id="results-title" class="visually-hidden">検索結果</h2>
+        <div id="resultsList" class="candidate-list"></div>
+        <div id="emptyState" class="empty-state" hidden>
+          <p>見つかりませんでした</p>
+          <button id="registerFromSearchButton" type="button">＋ この名前で登録</button>
+        </div>
+      </section>
     </section>
 
-    <section class="section-block" aria-labelledby="recent-title">
+    <section id="recentSection" class="section-block" aria-labelledby="recent-title">
       <div class="section-heading">
         <h2 id="recent-title">最近検索した薬</h2>
         <button id="clearRecentButton" class="text-button" type="button">クリア</button>
       </div>
       <div id="recentList" class="compact-list"></div>
-    </section>
-
-    <section class="section-block" aria-labelledby="results-title">
-      <h2 id="results-title">検索結果</h2>
-      <div id="resultsList" class="card-list"></div>
-      <div id="emptyState" class="empty-state" hidden>
-        <p>見つかりませんでした</p>
-        <button id="registerFromSearchButton" type="button">＋ この名前で登録</button>
-      </div>
     </section>
 
     <section class="section-block" aria-labelledby="detail-title">

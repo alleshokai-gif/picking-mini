@@ -43,6 +43,7 @@ const elements = {
   searchInput: document.querySelector('#searchInput'),
   searchLoading: document.querySelector('#searchLoading'),
   statusMessage: document.querySelector('#statusMessage'),
+  recentSection: document.querySelector('#recentSection'),
   recentList: document.querySelector('#recentList'),
   clearRecentButton: document.querySelector('#clearRecentButton'),
   resultsList: document.querySelector('#resultsList'),
@@ -123,6 +124,7 @@ async function runSearch(query, options = {}) {
   state.lastSearchQuery = trimmedQuery;
   const requestId = ++state.searchRequestId;
 
+  setRecentVisible(false);
   setSearchLoading(true);
   setStatus('');
   elements.emptyState.hidden = true;
@@ -136,7 +138,7 @@ async function runSearch(query, options = {}) {
     }
 
     renderResults(results, trimmedQuery);
-    setStatus(`${results.length}件見つかりました`);
+    setStatus('');
 
     if (trimmedQuery && results.length === 0) {
       elements.emptyState.hidden = false;
@@ -163,6 +165,7 @@ function clearSearchResults() {
   state.searchRequestId += 1;
   elements.resultsList.innerHTML = '';
   elements.emptyState.hidden = true;
+  setRecentVisible(true);
   setSearchLoading(false);
   setStatus('');
   renderRecent();
@@ -337,20 +340,13 @@ function renderResults(results, query = '') {
     card.className = 'drug-card';
     card.addEventListener('click', () => showDetail(drug.id));
 
-    if (drug.imageUrl) {
-      const image = document.createElement('img');
-      image.src = drug.imageUrl;
-      image.alt = `${drug.displayName}の写真`;
-      image.loading = 'lazy';
-      card.append(image);
-    }
-
     const body = document.createElement('span');
     body.className = 'drug-card-body';
+    const metaText = [drug.genericName, drug.aliases].filter(Boolean).join(' / ');
     body.append(
       highlightedEl('span', drug.location || '置き場所未設定', query, 'location-badge result-location'),
       highlightedEl('strong', drug.displayName || '(名称未設定)', query, 'drug-name'),
-      labeledHighlightedEl('一般名：', drug.genericName || '', query, 'sub-text'),
+      highlightedEl('span', metaText || '-', query, 'candidate-meta'),
       highlightedEl('span', truncate(drug.note || '', 48), query, 'note-preview'),
     );
     card.append(body);
@@ -524,6 +520,10 @@ function setStatus(message) {
 
 function setSearchLoading(isLoading) {
   elements.searchLoading.hidden = !isLoading;
+}
+
+function setRecentVisible(isVisible) {
+  elements.recentSection.hidden = !isVisible;
 }
 
 function setSaving(isSaving) {

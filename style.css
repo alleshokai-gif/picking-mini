@@ -20,6 +20,18 @@
   display: none !important;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -92,6 +104,14 @@ h2 {
   gap: 8px;
 }
 
+.search-form button {
+  min-height: 40px;
+  padding: 8px 11px;
+  background: var(--accent);
+  color: var(--primary-dark);
+  font-size: 14px;
+}
+
 .search-loading {
   color: var(--muted);
   font-size: 14px;
@@ -151,16 +171,30 @@ button:disabled {
   gap: 10px;
 }
 
+.suggestions-panel {
+  margin-top: 8px;
+}
+
+.candidate-list {
+  display: grid;
+}
+
 .drug-card {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 6px;
   width: 100%;
-  padding: 12px;
-  border: 1px solid var(--line);
+  padding: 12px 2px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
   background: #fff;
   color: var(--text);
   text-align: left;
+}
+
+.drug-card:first-child {
+  border-top: 0;
 }
 
 .drug-card img {
@@ -173,12 +207,12 @@ button:disabled {
 
 .drug-card-body {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .drug-name {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -206,14 +240,19 @@ mark {
 }
 
 .result-location {
-  font-size: 22px;
+  font-size: 21px;
   line-height: 1.2;
 }
 
 .sub-text,
+.candidate-meta,
 .note-preview,
 .empty-text {
   color: var(--muted);
+}
+
+.candidate-meta {
+  overflow-wrap: anywhere;
 }
 
 .compact-list {
